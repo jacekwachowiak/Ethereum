@@ -1,0 +1,46 @@
+contract Auction {
+    struct Bid {
+        uint startValue;
+        uint endValue;
+        uint step; //in seconds
+        uint loss; //per step in default (wei?)
+        uint startTime;
+        uint deadline; // in sec
+        uint actualValue;
+        bool isRunning;
+    }
+
+    address public owner;
+    mapping(address => Bid) bid; 
+    function Start(uint startValue, uint endValue, uint step, uint loss) {
+        if (startValue <= endValue){
+            return;
+        }
+        bid[owner].startValue = startValue;
+        bid[owner].endValue = endValue;
+        bid[owner].step = step; // time in seconds
+        bid[owner].loss = loss; // loss per step
+        bid[owner].startTime = block.timestamp;
+        bid[owner].deadline = block.timestamp + step*(startValue-endValue)/loss;
+        bid[owner].actualValue = startValue;
+        bid[owner].isRunning = true;
+    }
+
+    function checkBiding() payable returns (bool success){
+        if (block.timestamp > bid[owner].deadline){
+            return false;
+        }
+        bid[owner].actualValue = bid[owner].startValue - (block.timestamp - bid[owner].startTime)/bid[owner].step*bid[owner].loss;
+        if (msg.value >= bid[owner].actualValue && bid[owner].isRunning ==true)
+        {
+            //winner
+            bid[owner].isRunning = false;
+            owner.transfer(msg.value);
+            return true;
+        }
+        else {
+            //too late
+            return false;
+        }
+    }
+}

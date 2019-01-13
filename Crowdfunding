@@ -1,0 +1,69 @@
+contract Crowdfunding {
+    struct CampaignData {
+        address recipient;
+        uint contributed;
+        uint goal;
+        uint deadline;
+        uint num_contributions;
+        mapping(uint => Contribution) contributions;
+    }
+
+    struct Contribution {
+        address contributor;
+        uint amount;
+    }
+    address public owner;
+    mapping(address => CampaignData) campaigns;
+
+    // Start a new campaign.
+    function start(address recipient, uint256 goal, uint256 deadline) returns (address owner) {
+        campaigns[owner].recipient = recipient;
+        campaigns[owner].goal = goal;
+        campaigns[owner].deadline = block.timestamp + deadline;
+    }
+
+    // Contribute to the campaign
+    function contribute() payable returns (uint given) {
+        campaigns[owner].contributed += msg.value;
+        var contribution = campaigns[owner].contributions[campaigns[owner].num_contributions];
+        contribution.contributor = msg.sender;
+        contribution.amount = msg.value;
+        campaigns[owner].num_contributions++;
+        given = campaigns[owner].contributed;
+    }
+    // Checks status of some variables without calling any other functions to assess the state
+    function status() returns(uint contributed, uint goal, uint deadline, uint rtime){
+        contributed = campaigns[owner].contributed;
+        goal = campaigns[owner].goal;
+        deadline = campaigns[owner].deadline;
+        rtime = block.timestamp;
+    }
+
+    // Check whether the funding goal of the campaign
+    // has been reached and transfer the money.
+    function checkGoalReached() returns (bool reached) {
+        if (campaigns[owner].deadline > 0 && campaigns[owner].contributed >= campaigns[owner].goal) {
+            campaigns[owner].recipient.transfer(campaigns[owner].contributed);
+            // clear storage, we have to do it explicitly for the mapping since
+            // it is not possible to enumerate all set keys.
+            for (uint i = 0; i < campaigns[owner].num_contributions; ++i)
+                delete campaigns[owner].contributions[i]; // zero out its members
+            reached = true;
+        }
+    }
+
+    // Check whether the deadline of the campaign with passed.
+    // In that case, return the contributed money and delete the crowdfunding
+    function checkExpired() returns (bool expired) {
+        expired = false;
+        if (campaigns[owner].deadline > 0 && block.timestamp > campaigns[owner].deadline) {
+            // pay out the contributors
+            for (uint i = 0; i < campaigns[owner].num_contributions; ++i) {
+                campaigns[owner].contributions[i].contributor.transfer(
+                    campaigns[owner].contributions[i].amount);
+                delete campaigns[owner].contributions[i];
+            }
+            expired = true;
+        }
+    }
+}

@@ -1,0 +1,17 @@
+contract StringSaver {
+    mapping (address => string) public str;
+    address public owner;
+        
+    function StringSaver() {
+        owner = msg.sender;
+    }
+
+    //
+    function setString(string value){
+        str[msg.sender] = value;
+        
+    }
+    function getString() returns (string value){
+        return str[msg.sender];
+    }
+}
